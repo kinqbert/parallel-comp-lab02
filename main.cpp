@@ -2,6 +2,7 @@
 #include <atomic>
 #include <thread>
 #include <vector>
+#include <random>
 #include <mutex>
 #include <chrono>
 #include <algorithm>
@@ -15,11 +16,18 @@ const int DIVISOR = 19;
 // Data generation
 vector<int> generateData(int size) {
     vector<int> data(size);
+
+    random_device rd;
+    mt19937 gen(rd());
+    uniform_int_distribution<int> dist(0, 99999);
+
     for (int i = 0; i < size; ++i) {
-        data[i] = rand() % 100000;
+        data[i] = dist(gen);
     }
+
     return data;
 }
+
 
 // Without parallelization
 void findDivisibleWithoutParallel(const vector<int>& data, int& count, int& minElement) {
