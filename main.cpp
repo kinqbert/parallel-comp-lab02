@@ -9,8 +9,8 @@
 
 using namespace std;
 
-const int DATA_SIZE = 100000000;
-const int NUM_THREADS = 32;
+const int DATA_SIZE = 1000000000;
+const int NUM_THREADS = 1;
 const int DIVISOR = 19;
 
 // Data generation
@@ -19,7 +19,7 @@ vector<int> generateData(int size) {
 
     random_device rd;
     mt19937 gen(rd());
-    uniform_int_distribution<int> dist(0, 99999);
+    uniform_int_distribution dist(0, 99999);
 
     for (int i = 0; i < size; ++i) {
         data[i] = dist(gen);
@@ -27,7 +27,6 @@ vector<int> generateData(int size) {
 
     return data;
 }
-
 
 // Without parallelization
 void findDivisibleWithoutParallel(const vector<int>& data, int& count, int& minElement) {
@@ -57,12 +56,12 @@ void findDivisibleWithMutex(const vector<int>& data, int& count, int& minElement
                 localMin = min(localMin, data[i]);
             }
         }
-        lock_guard<mutex> lock(mtx);
+        lock_guard lock(mtx);
         count += localCount;
         minElement = min(minElement, localMin);
     };
 
-    int chunkSize = DATA_SIZE / NUM_THREADS;
+    const int chunkSize = DATA_SIZE / NUM_THREADS;
     for (int i = 0; i < NUM_THREADS; ++i) {
         int start = i * chunkSize;
         int end = (i == NUM_THREADS - 1) ? DATA_SIZE : start + chunkSize;
@@ -78,7 +77,7 @@ void findDivisibleWithMutex(const vector<int>& data, int& count, int& minElement
 void findDivisibleWithAtomic(const vector<int>& data, atomic<int>& count, atomic<int>& minElement) {
     vector<thread> threads;
 
-    auto task = [&](int start, int end) {
+    auto task = [&](const int start, const int end) {
         int localCount = 0;
         int localMin = INT_MAX;
 
