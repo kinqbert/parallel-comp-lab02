@@ -9,7 +9,7 @@
 using namespace std;
 
 const int DATA_SIZE = 100000000;
-const int NUM_THREADS = 64;
+const int NUM_THREADS = 32;
 const int DIVISOR = 19;
 
 // Data generation
@@ -73,14 +73,19 @@ void findDivisibleWithAtomic(const vector<int>& data, atomic<int>& count, atomic
     auto task = [&](int start, int end) {
         int localCount = 0;
         int localMin = INT_MAX;
+
         for (int i = start; i < end; ++i) {
             if (data[i] % DIVISOR == 0) {
                 ++localCount;
-                int currentMin = minElement.load();
-                while (data[i] < currentMin && !minElement.compare_exchange_weak(currentMin, data[i])) {}
+                localMin = min(localMin, data[i]);
             }
         }
         count.fetch_add(localCount);
+
+        int currentMin = minElement.load();
+        while (localMin < currentMin &&
+               !minElement.compare_exchange_weak(currentMin, localMin)) {
+               }
     };
 
     int chunkSize = DATA_SIZE / NUM_THREADS;
@@ -109,7 +114,7 @@ int main() {
     double elapsed = chrono::duration<double>(end - start).count();
     cout << "[*] Without parallelization\n";
     cout << "Found: " << count << " elements, minimum: " << minElement
-         << ", time: " << elapsed << " ms" << endl;
+         << ", time: " << elapsed << " s" << endl;
 
     // With mutex
     start = chrono::high_resolution_clock::now();
@@ -118,7 +123,8 @@ int main() {
     elapsed = chrono::duration<double>(end - start).count();
     cout << "[*] With mutex\n";
     cout << "Found: " << count << " elements, minimum: " << minElement
-         << ", time: " << elapsed << " ms" << endl;
+         << ", time: " << elapsed << " s" << endl;
+
 
     // With atomic variables
     start = chrono::high_resolution_clock::now();
@@ -128,7 +134,7 @@ int main() {
     cout << "[*] With atomic variables\n";
     cout << "Found: " << atomicCount.load() << " elements, minimum: "
          << atomicMinElement.load() << ", time: "
-         << elapsed << " ms" << endl;
+         << elapsed << " s" << endl;
 
     return 0;
 }
